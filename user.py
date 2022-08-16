@@ -21,16 +21,24 @@ class AccountController(slixmpp.ClientXMPP):
     self.register_plugin('xep_0045')  # Group Chat
     self.register_plugin('xep_0060')  # PubSub
     self.register_plugin('xep_0077')  # In Bound Registration
-    self.register_plugin('xep_0085') # Chat State Notifications
+    self.register_plugin('xep_0085')  # Chat State Notifications
     self.register_plugin('xep_0092')  # Software version
     self.register_plugin('xep_0096')  # Jabber Search
     self.register_plugin('xep_0199')  # XMPP Ping
     self.register_plugin('xep_0249')  # Direct MUC Invitations
 
     self.connected_event = asyncio.Event()
-    self.add_event_handler('session_start', self.onSessionStart)
+    self.current_chat = ''
+    self.add_event_handler('groupchat_message', self.groupMessage)
     self.add_event_handler('message', self.message)
-    self.add_event_handler("groupchat_message", self.groupMessage)
+
+    self.add_event_handler('chatstate_gone', self.contactGone)
+    self.add_event_handler('chatstate_active', self.contactActive)
+    self.add_event_handler('chatstate_inactive', self.contactInactive)
+    self.add_event_handler('chatstate_paused', self.contactPause)
+    self.add_event_handler('chatstate_composing', self.contactTyping)
+
+    self.add_event_handler('session_start', self.onSessionStart)
 
   def threadSignIn(self):
     self.signIn()
@@ -50,6 +58,7 @@ class AccountController(slixmpp.ClientXMPP):
     self.connected_event.set()
 
   async def deleteAccount(self):
+    await self.get_roster()
     await self._deleteAccount()
   
   async def _deleteAccount(self):
@@ -66,7 +75,8 @@ class AccountController(slixmpp.ClientXMPP):
         print('Couldn\'t remove the account')
         self.disconnect()
     
-  def signOut(self):
+  async def signOut(self):
+    await self.get_roster()
     self.disconnect(wait=False)
 
   # --------------------------------- Contactos
@@ -95,29 +105,63 @@ class AccountController(slixmpp.ClientXMPP):
         ])
         status = ''
 
-  def addContact(self, newContact):
+  async def addContact(self, newContact):
     self.send_presence_subscription(newContact)
     print('[SERVER]: Se ha agregado a la lista de contactos', newContact)
 
+  # --------------------------------- Notificaciones
+  def contactGone(self, event):
+    msg_from = str(event['from'])
+    if (self.current_chat in msg_from):
+      print('[NOTIFICACION] ' + msg_from + ' se fue')
+
+  def contactInactive(self, event):
+    msg_from = str(event['from'])
+    if (self.current_chat in msg_from):
+      print('[NOTIFICACION] ' + msg_from + ' esta inactivo')
+
+  def contactActive(self, event):
+    msg_from = str(event['from'])
+    if (self.current_chat in msg_from):
+      print('[NOTIFICACION] ' + msg_from + ' esta activo')
+
+  def contactPause(self, event):
+    msg_from = str(event['from'])
+    if (self.current_chat in msg_from):
+      print('[NOTIFICACION] ' + msg_from + ' paro de escribir')
+
+  def contactTyping(self, event):
+    msg_from = str(event['from'])
+    if (self.current_chat in msg_from):
+      print('[NOTIFICACION] ' + msg_from + ' esta escribiendo...')
+
+  async def sendNotification(self, contact, message):
+    self.send_message(
+      mto=contact,
+      mbody=message,
+      mtype='chat'
+    )
+
+  def sendPresence(self, show, status):
+    self.send_presence(pshow=show, pstatus=status)
+
   # --------------------------------- Mensajeria
-  def sendDirectMessage(self, message):
+  async def sendDirectMessage(self, message):
     self.send_message(
       mto=self.current_chat,
       mbody=message,
       mtype='chat'
     )
 
-  def sendGroupMessage(self, message):
+  async def sendGroupMessage(self, message):
+    self.plugin['xep_0045'].join_muc(
+      self.current_chat,
+      self.current_user.split('@')[0],
+    )
     self.send_message(
       mto=self.current_chat,
       mbody=message,
       mtype='groupchat'
-    )
-
-  def joinChatRoom(self):
-    self.plugin['xep_0045'].join_muc(
-      self.current_chat,
-      self.current_user.split('@')[0],
     )
 
   def message(self, msg):
@@ -131,50 +175,16 @@ class AccountController(slixmpp.ClientXMPP):
         print('[' + msg_from.split('/')[0] + ']: ' + str(msg['body'].split('@')[0]))
         return
 
-    print('[NOTIFICATION] Mensaje de:', msg_from)
+    print('[NOTIFICACION] Mensaje de:', msg_from)
 
   def groupMessage(self, msg):
     msg_from = str(msg['from'])
     if (self.current_user in msg_from): return
 
-    msg_from = str(msg['mucnick'])
-    print(msg, msg_from)
-    # if (self.current_chat in msg_from):
-    #   print('[' + msg_from + ']: ' + str(msg['body'].split('@')[0]))
-    #   return
-
-    print('[NOTIFICATION]', msg)
-
-class AccountController2(slixmpp.ClientXMPP):
-  def __init__(self, jid, password):
-    slixmpp.ClientXMPP.__init__(self, jid, password)
-
-    # Gesister plugin
-    self.register_plugin('xep_0004')  # Data Forms
-    self.register_plugin('xep_0030')  # Service Discovery
-    self.register_plugin('xep_0045')  # Group Chat
-    self.register_plugin('xep_0060')  # PubSub
-    self.register_plugin('xep_0077')  # In Bound Registration
-    self.register_plugin('xep_0085') # Chat State Notifications
-    self.register_plugin('xep_0092')  # Software version
-    self.register_plugin('xep_0096')  # Jabber Search
-    self.register_plugin('xep_0199')  # XMPP Ping
-    self.register_plugin('xep_0249')  # Direct MUC Invitations
-
-    self.connected_event = asyncio.Event()
-    self.add_event_handler('session_start', self.onSessionStart)
-    self.add_event_handler('message', self.message)
-
-  async def onSessionStart(self, event):
-    self.send_presence()
-    await self.get_roster()
-  # --------------------------------- Mensajeria
-  def message(self, msg):
-    print('MENSAJEEEEEE', msg)
-
-
-if __name__ == '__main__':
-  logging.basicConfig(level=logging.DEBUG, format='%(levelname)-8s %(message)s')
-  client = AccountController2('brandontest@alumchat.fun', 'gallos')
-  client.connect()
-  client.process(timeout=10)
+    msg_nick = str(msg['mucnick'])
+    if (msg_nick not in self.current_user):
+      print('[' + msg_from.split('@')[0] +
+        '-' + msg_from.split('/')[1] + ']: ' +
+        str(msg['body'].split('@')[0])
+      )
+      return

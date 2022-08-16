@@ -64,8 +64,10 @@ while (1):
     print('3. Mostrar detalles de un usuario')
     print('4. Mensajes directos')
     print('5. Mensajes grupales')
-    print('6. Borrar cuenta')
-    print('7. Cerrar sesion')
+    print('6. Enviar notificacion')
+    print('7. Definir mensaje de presencia')
+    print('da. Borrar cuenta')
+    print('cs. Cerrar sesion')
     option = input('[CLIENT] Ingrese su opcion: ')
 
     # Mostar contactos
@@ -82,8 +84,20 @@ while (1):
       newContact = input('Ingrese el nombre del contacto nuevo: ') + '@' + SERVER
       server.addContact(newContact)
     
+    # Mostrar info de un usuario
     elif (option == '3'):
-      print('3. Mostrar detalles de un usuario')
+      print('\t --- Mostrar un Contacto ---')
+      toShow = input('Ingrese el nombre del usuario que desea observar: ') + '@' + SERVER
+      server.getContacts()
+
+      showed = False
+      for contact in server.contacts:
+        if toShow == contact[0]:
+          showed = True
+          print('-> User: ' + contact[0] + '\t\tStatus: ' + contact[1] )
+
+      if (not showed):
+        print('[CLIENT] No se encuentra en su lista de contactos')
 
     # Mensajes individuales
     elif (option == '4'):
@@ -99,24 +113,50 @@ while (1):
         send_message = input('[CLIENT] Ingrese su mensaje\n')
         if (send_message == 'BACK'): break
 
-        server.sendDirectMessage(send_message)
+        asyncio.run(server.sendDirectMessage(send_message))
 
     # Mensajes grupales
     elif (option == '5'):
       print('\n\t --- Mensajes grupales ---')
-      server.current_chat = input('Ingrese al room chat al que se quiere unir: ')
-      server.joinChatRoom()
+      server.current_chat = input('[CLIENT] Ingrese al grupo que se desea unir: ') + '@conference.' + SERVER
       send_message = ''
 
       while (1):
-
         send_message = input('[CLIENT] Ingrese su mensaje\n')
         if (send_message == 'BACK'): break
 
-        server.sendGroupMessage(send_message)
+        asyncio.run(server.sendGroupMessage(send_message))
+    
+    # Se envian notifiicaciones
+    elif (option == '6'):
+      print('\n\t --- Notificaciones ---')
+      send_message = ''
+
+      send_message = input('[CLIENT] Ingrese su notificacion para sus contactos\n')
+
+      for contact in server.contacts:
+        asyncio.run(server.sendNotification(contact[0], send_message))
+
+    # Se envian notifiicaciones
+    elif (option == '7'):
+      options = ['chat', 'away', 'xa', 'dnd']
+      print('\n\t --- Mensaje de presencia ---')
+      print('1. Disponible')
+      print('2. Afuera')
+      print('3. No disponible')
+      print('4. Ocupado')
+      option = input('Ingrese la opcion: ')
+      status = input('Ingrese su nuevo estado: ')
+
+      try:
+        option = int(option) - 1
+      except:
+        option = 0
+
+      server.sendPresence(options[option], status)
 
     # Borrar cuenta
-    elif (option == '6'):
+    elif (option == 'da'):
       print('\n\t --- Borrar cuenta ---')
       asyncio.run(server.deleteAccount())
       server.signOut()
@@ -125,9 +165,9 @@ while (1):
       user = INIT_STATE.copy()
 
     # Cerrar sesion
-    elif (option == '7'):
+    elif (option == 'cs'):
       print('\n\t --- Cerrar Cuenta ---')
-      server.signOut()
+      asyncio.run(server.signOut())
       server = None
       server_thread = None
       user = INIT_STATE.copy()
