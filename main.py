@@ -68,20 +68,26 @@ while (1):
     print('7. Cerrar sesion')
     option = input('[CLIENT] Ingrese su opcion: ')
 
+    # Mostar contactos
     if (option == '1'):
-      print('1. Mostrar contactos')
-      server.signOut()
-      user = INIT_STATE.copy()
+      print('\t --- Mostrar Contactos ---')
+      server.getContacts()
+
+      for contact in server.contacts:
+        print('-> User: ' + contact[0] + '\t\tStatus: ' + contact[1] )
     
+    # Agregar contacto
     elif (option == '2'):
-      print('2. Agregar contacto')
+      print('\t --- Agregar Contacto ---')
+      newContact = input('Ingrese el nombre del contacto nuevo: ') + '@' + SERVER
+      server.addContact(newContact)
     
     elif (option == '3'):
       print('3. Mostrar detalles de un usuario')
 
     # Mensajes individuales
     elif (option == '4'):
-      print('\t --- Mensajes directos ---')
+      print('\n\t --- Mensajes directos ---')
       # Pregunta a quien mensajear
       server.current_chat = input('Ingrese el usuario con el que desea hablar: ') + '@' + SERVER
       send_message = ''
@@ -97,10 +103,8 @@ while (1):
 
     # Mensajes grupales
     elif (option == '5'):
-      print('\t --- Mensajes grupales ---')
-      # server.current_chat = input('Ingrese al room chat al que se quiere unir: ')
-      # server.current_chat = input('Ingrese al room chat al que se quiere unir: ')
-      server.current_chat = 'amiwos'
+      print('\n\t --- Mensajes grupales ---')
+      server.current_chat = input('Ingrese al room chat al que se quiere unir: ')
       server.joinChatRoom()
       send_message = ''
 
@@ -111,16 +115,18 @@ while (1):
 
         server.sendGroupMessage(send_message)
 
+    # Borrar cuenta
     elif (option == '6'):
-      print('\t --- Borrar cuenta ---')
+      print('\n\t --- Borrar cuenta ---')
       asyncio.run(server.deleteAccount())
       server.signOut()
       server = None
       server_thread = None
       user = INIT_STATE.copy()
 
+    # Cerrar sesion
     elif (option == '7'):
-      print('\t --- Cerrar Cuenta ---')
+      print('\n\t --- Cerrar Cuenta ---')
       server.signOut()
       server = None
       server_thread = None
