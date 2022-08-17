@@ -1,4 +1,4 @@
-import xmpp, asyncio, slixmpp, logging
+import xmpp, asyncio, slixmpp
 
 asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 

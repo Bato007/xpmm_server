@@ -31,10 +31,10 @@ while (1):
 
     if (option == '1'):
       print('\n --- SIGN IN ---')
-      # username = input('Ingrese su usuario: ') + '@' + SERVER
-      # password = input('Ingrese su contrasenia: ')
-      username = 'brandontest@alumchat.fun'
-      password = 'gallos'
+      username = input('Ingrese su usuario: ') + '@' + SERVER
+      password = input('Ingrese su contrasenia: ')
+      # username = 'brandontest@alumchat.fun'
+      # password = 'gallos'
 
       server = AccountController(username, password)
       server.current_user = username
@@ -131,7 +131,6 @@ while (1):
     elif (option == '6'):
       print('\n\t --- Notificaciones ---')
       send_message = ''
-
       send_message = input('[CLIENT] Ingrese su notificacion para sus contactos\n')
 
       for contact in server.contacts:
@@ -148,10 +147,8 @@ while (1):
       option = input('Ingrese la opcion: ')
       status = input('Ingrese su nuevo estado: ')
 
-      try:
-        option = int(option) - 1
-      except:
-        option = 0
+      try: option = int(option) - 1
+      except: option = 0
 
       server.sendPresence(options[option], status)
 
